@@ -11,7 +11,7 @@ from ailment.expression import Expression, BinaryOp, Const, Load
 from angr.utils.graph import GraphUtils
 from ..utils import first_nonlabel_statement, remove_last_statement
 from ..structuring.structurer_nodes import IncompleteSwitchCaseHeadStatement, SequenceNode, MultiNode
-from .optimization_pass import OptimizationPass, OptimizationPassStage, MultipleBlocksException
+from .optimization_pass import StructuringOptimizationPass, OptimizationPassStage, MultipleBlocksException
 
 if TYPE_CHECKING:
     from ailment.expression import UnaryOp, Convert
@@ -130,15 +130,14 @@ class StableVarExprHasher(AILBlockWalkerBase):
         super()._handle_Convert(expr_idx, expr, stmt_idx, stmt, block)
 
 
-class LoweredSwitchSimplifier(OptimizationPass):
+class LoweredSwitchSimplifier(StructuringOptimizationPass):
     """
     Recognize and simplify lowered switch-case constructs.
     """
 
-    ARCHES = [
-        "AMD64",
-    ]
-    PLATFORMS = ["linux", "windows"]
+    ARCHES = None
+    # the switch lowering optimization does not occur when compiled with MSVC, so we disable for now
+    PLATFORMS = ["linux"]
     STAGE = OptimizationPassStage.DURING_REGION_IDENTIFICATION
     NAME = "Convert lowered switch-cases (if-else) to switch-cases"
     DESCRIPTION = (
@@ -147,9 +146,9 @@ class LoweredSwitchSimplifier(OptimizationPass):
     )
     STRUCTURING = ["phoenix"]
 
-    def __init__(self, func, blocks_by_addr=None, blocks_by_addr_and_idx=None, graph=None, **kwargs):
+    def __init__(self, func, **kwargs):
         super().__init__(
-            func, blocks_by_addr=blocks_by_addr, blocks_by_addr_and_idx=blocks_by_addr_and_idx, graph=graph, **kwargs
+            func, require_gotos=True, max_opt_iters=1, prevent_new_gotos=True, recover_structure_fails=False, **kwargs
         )
         self.analyze()
 
@@ -163,7 +162,7 @@ class LoweredSwitchSimplifier(OptimizationPass):
         if not variablehash_to_cases:
             return
 
-        graph_copy = networkx.DiGraph(self._graph)
+        graph_copy = networkx.DiGraph(self.out_graph)
         self.out_graph = graph_copy
         node_to_heads = defaultdict(set)
 

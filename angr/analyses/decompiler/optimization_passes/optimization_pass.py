@@ -249,9 +249,17 @@ class StructuringOptimizationPass(OptimizationPass):
     STAGE = OptimizationPassStage.DURING_REGION_IDENTIFICATION
 
     def __init__(
-        self, func, prevent_new_gotos=True, recover_structure_fails=True, max_opt_iters=1, simplify_ail=True, **kwargs
+        self,
+        func,
+        require_gotos=False,
+        prevent_new_gotos=True,
+        recover_structure_fails=True,
+        max_opt_iters=1,
+        simplify_ail=True,
+        **kwargs,
     ):
         super().__init__(func, **kwargs)
+        self._require_gotos = require_gotos
         self._prevent_new_gotos = prevent_new_gotos
         self._recover_structure_fails = recover_structure_fails
         self._max_opt_iters = max_opt_iters
@@ -271,6 +279,9 @@ class StructuringOptimizationPass(OptimizationPass):
             return
 
         initial_gotos = self._goto_manager.gotos.copy()
+        if self._require_gotos and not initial_gotos:
+            return
+
         # replace the normal check in OptimizationPass.analyze()
         ret, cache = self._check()
         if not ret:

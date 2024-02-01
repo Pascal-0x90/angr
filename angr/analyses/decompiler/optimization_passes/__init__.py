@@ -39,7 +39,7 @@ _all_optimization_passes = [
     (ITEExprConverter, True),
     (ExprOpSwapper, True),
     (ReturnDuplicator, True),
-    (LoweredSwitchSimplifier, False),
+    (LoweredSwitchSimplifier, True),
     (ReturnDeduplicator, True),
     (CrossJumpReverter, True),
     (FlipBooleanCmp, True),
